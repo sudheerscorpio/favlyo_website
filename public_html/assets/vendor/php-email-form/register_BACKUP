@@ -1,0 +1,139 @@
+<?php
+// Database connection settings
+$host = 'localhost';
+$db = 'u202272910_favlyo_sg_01';
+$user = 'u202272910_favlyo_sg_u1';
+$pass = 'Garlapati!!11';
+$charset = 'utf8mb4';
+
+// Set up PDO securely
+$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
+$options = [
+  PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+  PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+  PDO::ATTR_EMULATE_PREPARES => false,
+];
+try {
+  $pdo = new PDO($dsn, $user, $pass, $options);
+} catch (\PDOException $e) {
+  error_log($e->getMessage());
+  echo "Database connection failed.";
+  exit;
+}
+
+// Helper to sanitize input
+function get($key)
+{
+  if (!isset($_POST[$key]))
+    return '';
+  if (is_array($_POST[$key])) {
+    return array_map('trim', $_POST[$key]);
+  }
+  return htmlspecialchars(trim($_POST[$key]));
+}
+
+// Collect and sanitize POST data
+$name = get('name');
+$email = get('email');
+$phone = get('phone');
+$role = get('role');
+$experience = get('experience');
+$work_type = isset($_POST['work_type']) ? implode(',', array_map('trim', $_POST['work_type'])) : '';
+$join_time = get('join_time');
+$training = get('training');
+$area = get('area');
+$city = get('city');
+$state = get('state');
+$pincode = get('pincode');
+$interview_ready = get('interview_ready');
+$gender = get('gender');
+$age = get('age');
+$languages = isset($_POST['languages']) ? implode(',', array_map('trim', $_POST['languages'])) : '';
+$vehicle = get('vehicle');
+$know_about = get('know_about');
+$referral_code = get('referral_code');
+$alt_phone = get('alt_phone');
+
+// Validate email and phone
+if (!filter_var($email, FILTER_VALIDATE_EMAIL) || !preg_match('/^\d{10}$/', $phone)) {
+  echo "Invalid email or phone number.";
+  exit;
+}
+
+// Check for duplicate email or phone using prepared statement
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM registrations WHERE email = ? OR phone = ?");
+$stmt->execute([$email, $phone]);
+if ($stmt->fetchColumn() > 0) {
+  echo "This email or mobile number is already registered.";
+  exit;
+}
+
+// Insert registration securely using prepared statement
+$datetime = date('Y-m-d H:i:s');
+$stmt = $pdo->prepare("INSERT INTO registrations 
+    (datetime, name, email, phone, role, experience, work_type, join_time, training, area, city, state, pincode, interview_ready, gender, age, languages, vehicle, know_about, referral_code, alt_phone)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+$stmt->execute([
+  $datetime,
+  $name,
+  $email,
+  $phone,
+  $role,
+  $experience,
+  $work_type,
+  $join_time,
+  $training,
+  $area,
+  $city,
+  $state,
+  $pincode,
+  $interview_ready,
+  $gender,
+  $age,
+  $languages,
+  $vehicle,
+  $know_about,
+  $referral_code,
+  $alt_phone
+]);
+
+// Send confirmation email to user
+$to = $email;
+$subject = "Welcome to Favlyo - Registration Successful!";
+$headers = "MIME-Version: 1.0" . "\r\n";
+$headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
+$headers .= "From: Favlyo <noreply@favlyo.com>" . "\r\n";
+
+$message = "
+<html>
+<head>
+  <style>
+    body { font-family: 'Montserrat', 'Poppins', Arial, sans-serif; background: #f8fafc; }
+    .card { background: #fff; border-radius: 16px; box-shadow: 0 4px 16px #e3e6f3; padding: 32px; max-width: 500px; margin: auto; }
+    .title { color: #6c63ff; font-size: 1.5rem; font-weight: 700; margin-bottom: 12px; }
+    .subtitle { color: #444; font-size: 1.1rem; margin-bottom: 24px; }
+    .btn { display: inline-block; background: linear-gradient(90deg, #6c63ff 0%, #48c6ef 100%); color: #fff; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; margin-top: 24px; }
+    .footer { color: #888; font-size: 0.95rem; margin-top: 32px; }
+  </style>
+</head>
+<body>
+  <div class='card'>
+    <div class='title'>Welcome to Favlyo!</div>
+    <div class='subtitle'>Hi " . htmlspecialchars($name) . ",<br><br>
+      Thank you for registering with <strong>Favlyo</strong>.<br>
+      Your registration was successful on <strong>" . $datetime . "</strong>.<br>
+      We are excited to have you join our community!
+    </div>
+    <a href='https://favlyo.com' class='btn'>Explore Favlyo</a>
+    <div class='footer'>
+      If you have any questions, feel free to reply to this email.<br>
+      <strong>Team Favlyo</strong>
+    </div>
+  </div>
+</body>
+</html>
+";
+
+mail($to, $subject, $message, $headers);
+
+echo "success";

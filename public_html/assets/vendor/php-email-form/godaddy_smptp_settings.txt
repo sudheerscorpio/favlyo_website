@@ -1,0 +1,6 @@
+$contact->smtp = array(
+'Host' => 'localhost',
+'Connection' => 'None',
+'SMTP Authentication' => 'False',
+'port' => '25'
+);

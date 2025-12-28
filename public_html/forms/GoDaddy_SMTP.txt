@@ -1,0 +1,13 @@
+https://in.godaddy.com/help/article-953
+
+Port: 25
+SMTP Authentication: False or none
+SSL or Secure Connection: None
+
+Linux (cPanel)
+Use localhost unless:
+You use PHP script and the mail() function.
+You use Perl script and the /usr/lib/sendmail binary.
+In those cases, you do not need to specify a relay server.
+
+You need to take your web developer's help and use the above SMTP settings.
